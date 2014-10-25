@@ -55,8 +55,8 @@ def check_replace(dollar_str):
         # Match NAME
         name_re = re.search(r"(?<=^\${)[_a-zA-Z]+\w*",dollar_str)
         
-        if (name_re is None) or 
-              (name_re.end() == len(dollar_str)) or
+        if (name_re is None) or \
+              (name_re.end() == len(dollar_str)) or \
               (dollar_str[name_re.end():name_re.end()+1] not in ["}","-","="]):
             return 0
 
@@ -119,10 +119,10 @@ def expand(old_line):
     if reg:
         prefix = old_line[:reg.end()] 
         suffix = check_replace(old_line[reg.end():])
-        if suffix:
-            return prefix + suffix
-        else:
+        if suffix == 0:
             return 0
+        else:
+            return prefix + suffix
     else:
         return old_line
 
@@ -136,7 +136,7 @@ while True:
     if line == "":
         continue
     expanded = expand(line)
-    if not expanded:
+    if expanded == 0:
         sys.stderr.write("invalid expansion\n")
         continue
     print ">> " + expanded

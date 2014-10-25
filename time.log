@@ -5,7 +5,8 @@ Date   Time   Spent  Work completed
 -----  -----  ----   --------------
 10/24  18:00  2:00   Regex match $...
 10/24  21:00  2:30   $NAME, $D, $*
-10/24   9:30  1:00   First draft of cases
+10/25   9:30  1:00   First draft of cases
+10/25  10:30  0:30   Fixed falsy bug
              ----
             TOTAL time spent
 
