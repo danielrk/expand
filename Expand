@@ -2,7 +2,7 @@
 import sys, os, re
 ncmd = 1
 
-def check_replace(dollar_str):
+def check_replace(dollar_str, set_flag):
     """
     Given "$...", error-check and possibly expand the
     immediate candidate macro. Return the processed
@@ -72,6 +72,37 @@ def check_replace(dollar_str):
 
         # ${NAME-... or ${NAME=... ?
         elif next_c == "-" or next_c == "=":
+            
+            # Check if WORD contains bracey recursion
+            after_open = dollar_str[2:]
+            open_re = re.search(r"(^|[^\\]+?)(\\\\)*\${", after_open)
+            close_re = re.search(r"[^\\]+?(\\\\)*}", after_open)
+
+            # No closing brace
+            if close_re is None:
+                return 0 
+
+            if not ((open_re is None) or (close_re.end() < open_re.end())):
+
+                ###########################
+                #     RECURSIVE CASE      #
+                # WORD == [...]${...}[...]#
+                # process inner ${...}    #
+                ###########################
+                
+                rec_set_flag = name not in os.environ.keys()
+                
+                name_dash = dollar_str[0:name_re.end()+1]
+                new_word_and_rest = expand(dollar_str[name_re.end()+1:], rec_set_flag)
+
+                if new_word_and_rest == 0:
+                    return 0
+
+                dollar_str = name_dash + new_word_and_rest
+
+            ###########################
+            # WORD != [...]${...}[...]#
+            ###########################
 
             # Match non-empty WORD
             word_re = re.search(r"(?<=^\${)(\w+(=|-))((.*?)[^\\](\\\\)*)(?=})", dollar_str)
@@ -81,7 +112,7 @@ def check_replace(dollar_str):
             if not word_re:
                 # No closing brace
                 return 0
-            
+           
             word = word_re.group(3)
             sep  = word_re.group(2)
             
@@ -94,10 +125,10 @@ def check_replace(dollar_str):
             # NAME not defined
             else:
                 # Recursively expand WORD first
-                processed = expand(word)
-                if sep == "=":
+                processed = expand(word, set_flag)
+                if sep == "=" and set_flag:
                     os.environ[name] = processed
-                
+
         # Otherwise error
         else:
             return 0
@@ -107,9 +138,9 @@ def check_replace(dollar_str):
         processed = dollar_str[0]
         rest = dollar_str[1:]
 
-    return str(processed) + expand(rest)
+    return str(processed) + expand(rest, set_flag)
 
-def expand(old_line):
+def expand(old_line, set_flag):
     """ 
     Return expanded line or 0 on error.
     """
@@ -125,12 +156,12 @@ def expand(old_line):
 
     # First $ escaped; try next one
     if even_bs_re is None:
-        return stuff_dollar + expand(old_line[len(stuff_dollar):])
+        return stuff_dollar + expand(old_line[len(stuff_dollar):], set_flag)
 
     # Unescaped $
     else:
         prefix = old_line[:len(stuff_dollar)-1] 
-        suffix = check_replace(old_line[len(stuff_dollar)-1:])
+        suffix = check_replace(old_line[len(stuff_dollar)-1:], set_flag)
         if suffix == 0:
             return 0
         else:
@@ -146,7 +177,7 @@ while True:
         break
     if line == "":
         continue
-    expanded = expand(line)
+    expanded = expand(line, 1)
     if expanded == 0:
         sys.stderr.write("invalid expansion\n")
         continue
