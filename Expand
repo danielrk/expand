@@ -5,9 +5,56 @@ ncmd = 1
 def check_replace(dollar_str):
     """
     Given "$...", error-check and possibly expand the
-    immediate candidate name.
+    immediate candidate macro. Return the processed
+    string, or 0 if error.
     """
+    
+    # Default expansion (NAME not defined)
+    processed = ""
 
+    if len(dollar_str) <= 1:
+        return dollar_str
+    
+    c1 = dollar_str[1:2]
+
+    # $NAME ?
+    if c1.isalpha() or c1 == "_":
+        # Must match NAME
+        name_re = re.search(r"(?<=^\$)(\w+)", dollar_str)
+        name    = name_re.group(0)
+
+        if name in os.environ.keys():
+            processed = str(os.environ[name])
+
+        rest    = name_re.end() 
+
+    # $D ?
+    elif c1.isdigit():
+        # Give Dth arg or ""
+        d = int(c1)
+        if d < len(sys.argv):
+            processed = sys.argv[d]
+        
+        rest = dollar_str[2:]
+
+    # ${... ?
+    elif c1 == "{":
+        # Match NAME
+        name_re = re.search(r"(?<=^\${)[_a-zA-Z]+\w*",dollar_str)
+        
+        if name_re is None:
+            return 0
+        # ${NAME} ?
+         
+        # Otherwise error
+    # $* ?
+    elif c1 == "*":
+        processed = ' '.join(argv[1:])
+        rest      = dollar_str[2:]
+
+    # Otherwise just another char
+    
+    return str(processed) + expand(rest)
 
 def expand(old_line):
     """ 
@@ -18,7 +65,13 @@ def expand(old_line):
     reg = re.search(r"(([^\\]+)|^)(\\\\)*(?=\$)",old_line)
     if reg:
         prefix = old_line[:reg.end()] 
-        return prefix + check_replace(old_line[reg.end():])
+        suffix = check_replace(old_line[reg.end():])
+        if suffix:
+            return prefix + suffix
+        else:
+            return 0
+    else:
+        return old_line
 
 
 while True:
@@ -27,7 +80,9 @@ while True:
     if line == "":
         break
     expanded = expand(line)
-    #if not expanded:
-    #    continue
+    if not expanded:
+        sys.stderr.write("invalid expansion\n")
+        continue
+    print ">> " + expanded
     ncmd += 1
 
