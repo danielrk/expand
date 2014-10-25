@@ -114,17 +114,27 @@ def expand(old_line):
     Return expanded line or 0 on error.
     """
 
-    # Match maximal prefix before unescaped '$'
-    reg = re.search(r"(([^\\]+)|^)(\\\\)*(?=\$)",old_line)
-    if reg:
-        prefix = old_line[:reg.end()] 
-        suffix = check_replace(old_line[reg.end():])
+    # Match up to first '$'
+    up_to_first_dollar_re = re.search(r"(^|[^\$]+?)\$",old_line)
+
+    if up_to_first_dollar_re is None:
+        return old_line
+
+    stuff_dollar = up_to_first_dollar_re.group(0)
+    even_bs_re = re.search(r"(^|[^\\]+?)(\\\\)*\$",stuff_dollar)
+
+    # First $ escaped; try next one
+    if even_bs_re is None:
+        return stuff_dollar + expand(old_line[len(stuff_dollar):])
+
+    # Unescaped $
+    else:
+        prefix = old_line[:len(stuff_dollar)-1] 
+        suffix = check_replace(old_line[len(stuff_dollar)-1:])
         if suffix == 0:
             return 0
         else:
             return prefix + suffix
-    else:
-        return old_line
 
 
 while True:
