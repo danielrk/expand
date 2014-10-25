@@ -140,7 +140,7 @@ def expand(old_line):
 while True:
     
     try:
-        line = raw_input("("+str(ncmd)+") ")
+        line = raw_input("("+str(ncmd)+")$ ")
     except (EOFError):
         print ""
         break
