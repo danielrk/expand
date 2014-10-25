@@ -9,6 +9,21 @@ Date   Time   Spent  Work completed
 10/25  10:30  0:30   Fixed falsy bug
 10/25  11:00  1:00   Fixed regex bug
 10/25  14:30  2:00   Fixed recursive expansion
-             ----
-            TOTAL time spent
+              ----
+              9:00   TOTAL time spent
+
+Major Difficulties:
+    The most time-consuming challenges were tinkering
+    with regex and figuring out how to do the recursive
+    expansion. The REPL was helpful for the former task.
+    The major obstacle for the latter task was neglecting
+    that WORD could contain unescaped braces prior to its
+    expansion (which I had unwittingly assumed in a regex 
+    to find the end of the current macro). Prior to 
+    realizing that I could use regex to determine whether 
+    WORD contained ${...} and simply recurse, I tried 
+    to find the end of the current macro by counting 
+    open and close braces. Realizing that this problem
+    involved code that I had already written led me to
+    the simple recursive solution.
 
