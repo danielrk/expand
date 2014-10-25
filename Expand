@@ -26,7 +26,7 @@ def check_replace(dollar_str):
         if name in os.environ.keys():
             processed = str(os.environ[name])
 
-        rest    = name_re.end() 
+        rest    = dollar_str[name_re.end():]
 
     # $D ?
     elif c1.isdigit():
@@ -37,23 +37,76 @@ def check_replace(dollar_str):
         
         rest = dollar_str[2:]
 
-    # ${... ?
-    elif c1 == "{":
-        # Match NAME
-        name_re = re.search(r"(?<=^\${)[_a-zA-Z]+\w*",dollar_str)
-        
-        if name_re is None:
-            return 0
-        # ${NAME} ?
-         
-        # Otherwise error
     # $* ?
     elif c1 == "*":
         processed = ' '.join(argv[1:])
         rest      = dollar_str[2:]
 
+    # ${D} ?
+    elif re.search(r"^\${\d}",dollar_str):
+        d = int(dollar_str[2])
+        if d < len(sys.argv):
+            processed = sys.argv[d]
+        
+        rest = dollar_str[4:]
+
+    # ${... ?
+    elif c1 == "{":
+        # Match NAME
+        name_re = re.search(r"(?<=^\${)[_a-zA-Z]+\w*",dollar_str)
+        
+        if (name_re is None) or 
+              (name_re.end() == len(dollar_str)) or
+              (dollar_str[name_re.end():name_re.end()+1] not in ["}","-","="]):
+            return 0
+
+        # Must be ${NAME[}\-=]+...
+        name   = name_re.group(0)
+        next_c = dollar_str[name_re.end():name_re.end()+1]
+
+        if name in os.environ.keys():
+            processed = os.environ[name]
+        # ${NAME} ?
+        if next_c == "}":
+            rest = dollar_str[name_re.end()+1:]
+
+        # ${NAME-... or ${NAME=... ?
+        elif next_c == "-" or next_c == "=":
+
+            # Match non-empty WORD
+            word_re = re.search(r"(?<=^\${)(\w+(=|-))((.*?)[^\\](\\\\)*)(?=})", dollar_str)
+            if not word_re:
+                # Try empty WORD
+                word_re = re.search(r"(?<=^\${)(\w+(=|-))((.*?)(\\\\)*)(?=})", dollar_str)
+            if not word_re:
+                # No closing brace
+                return 0
+            
+            word = word_re.group(3)
+            sep  = word_re.group(2)
+            
+            rest = dollar_str[word_re.end()+1:]
+
+            # Done if NAME defined
+            if name in os.environ.keys():
+                pass 
+
+            # NAME not defined
+            else:
+                # Recursively expand WORD first
+                processed = expand(word)
+                if sep == "=":
+                    os.environ[name] = processed
+                
+        # Otherwise error
+        else:
+            return 0
+
     # Otherwise just another char
-    
+    else:
+        processed = dollar_str[0]
+        rest = dollar_str[1:]
+
     return str(processed) + expand(rest)
 
 def expand(old_line):
@@ -76,9 +129,12 @@ def expand(old_line):
 
 while True:
     
-    line = raw_input("("+str(ncmd)+") ")
-    if line == "":
+    try:
+        line = raw_input("("+str(ncmd)+") ")
+    except (EOFError):
         break
+    if line == "":
+        continue
     expanded = expand(line)
     if not expanded:
         sys.stderr.write("invalid expansion\n")
