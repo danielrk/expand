@@ -142,6 +142,7 @@ while True:
     try:
         line = raw_input("("+str(ncmd)+") ")
     except (EOFError):
+        print ""
         break
     if line == "":
         continue
