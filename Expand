@@ -1,1 +1,33 @@
-hisdasdf
+#!/usr/bin/python
+import sys, os, re
+ncmd = 1
+
+def check_replace(dollar_str):
+    """
+    Given "$...", error-check and possibly expand the
+    immediate candidate name.
+    """
+
+
+def expand(old_line):
+    """ 
+    Return expanded line or 0 on error.
+    """
+
+    # Match maximal prefix before unescaped '$'
+    reg = re.search(r"(([^\\]+)|^)(\\\\)*(?=\$)",old_line)
+    if reg:
+        prefix = old_line[:reg.end()] 
+        return prefix + check_replace(old_line[reg.end():])
+
+
+while True:
+    
+    line = raw_input("("+str(ncmd)+") ")
+    if line == "":
+        break
+    expanded = expand(line)
+    #if not expanded:
+    #    continue
+    ncmd += 1
+
